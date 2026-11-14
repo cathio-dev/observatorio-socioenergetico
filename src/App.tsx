@@ -19,9 +19,19 @@ const names: Record<string, string> = { '2927408018': 'Beiru / Tancredo Neves', 
 const metricLabels: Record<string, string> = {
   population: 'População residente', dwellings_total: 'Domicílios totais', dwellings_occupied: 'Domicílios particulares ocupados',
   dwellings_occasional: 'Uso ocasional', dwellings_vacant: 'Domicílios vagos', population_density: 'Densidade populacional',
-  residents_per_occupied_dwelling: 'Moradores por domicílio ocupado',
+  residents_per_occupied_dwelling: 'Moradores por domicílio ocupado', water_network_share: 'Abastecimento pela rede geral',
+  sewer_network_share: 'Esgoto na rede geral ou pluvial', waste_collection_share: 'Coleta por serviço de limpeza',
+  without_bathroom_share: 'Domicílios sem banheiro nem sanitário', income_average: 'Rendimento médio do responsável',
+  income_median: 'Rendimento mediano do responsável', urban_paved_share: 'Face do domicílio com via pavimentada',
+  urban_lighting_share: 'Face do domicílio com iluminação pública', urban_sidewalk_share: 'Face do domicílio com calçada',
+  urban_no_trees_share: 'Face do domicílio sem árvores',
 }
 const fmt = (n: number) => new Intl.NumberFormat('pt-BR').format(n)
+const percentDifference = (rows: Observation[]) => {
+  const values = rows.map((row) => row.value)
+  if (values.length < 2 || Math.min(...values) === 0) return 0
+  return Math.round((Math.max(...values) / Math.min(...values) - 1) * 100)
+}
 
 function observationsFor(data: AppData, indicator: string, year = 2022) {
   return data.observations.filter((o) => o.indicator_code === indicator && o.year === year && neighborhoodCodes.includes(o.territory_code))
@@ -43,6 +53,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mapMetric, setMapMetric] = useState('population_density')
   const [compareMetric, setCompareMetric] = useState('population')
+  const [energyYear, setEnergyYear] = useState(2025)
 
   useEffect(() => { loadData().then(setData).catch((e: Error) => setLoadError(e.message)) }, [])
   const latestYear = 2022
@@ -52,7 +63,8 @@ function App() {
   const residents = observationsFor(data ?? emptyData, 'residents_per_occupied_dwelling', latestYear)
   const totalPopulation = population.reduce((sum, row) => sum + row.value, 0)
   const totalDwellings = dwellings.reduce((sum, row) => sum + row.value, 0)
-  const latestEnergy = data?.observations.filter((o) => o.indicator_code === 'electricity_residential_consumption').sort((a,b) => b.year-a.year)[0]
+  const selectedEnergy = data?.observations.find((o) => o.indicator_code === 'electricity_residential_consumption' && o.year === energyYear)
+  const selectedConsumers = data?.observations.find((o) => o.indicator_code === 'electricity_residential_consumers' && o.year === energyYear)
   const energySeries = useMemo(() => (data?.observations ?? []).filter((o) => o.indicator_code === 'electricity_residential_consumption' && o.territory_code === 'BA').sort((a,b)=>a.year-b.year).map(o=>({year:o.year, consumption:o.value})), [data])
   const ivsSeries = useMemo(() => [2000, 2010].map((year) => {
     const value = (code: string) => data?.observations.find((o) => o.territory_code === '2927408' && o.indicator_code === code && o.year === year)?.value ?? null
@@ -96,7 +108,7 @@ function App() {
       {page === 'compare' && <>
         <PageHeading eyebrow="COMPARAÇÃO TERRITORIAL" title="Dois bairros, lado a lado." description="Compare os registros censitários com a mesma unidade e o mesmo ano de referência."/>
         <div className="filter-row"><label htmlFor="compare-metric">Indicador</label><select id="compare-metric" value={compareMetric} onChange={e=>setCompareMetric(e.target.value)}>{Object.entries(metricLabels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><span className="filter-year">Referência · 2022</span></div>
-        <div className="compare-feature"><div className="compare-main"><div className="eyebrow">{metricLabels[compareMetric]}</div><h2>{fmt(observationsFor(data ?? emptyData, compareMetric)[0]?.value ?? 0)} <span>vs.</span> {fmt(observationsFor(data ?? emptyData, compareMetric)[1]?.value ?? 0)}</h2><p>Beiru / Tancredo Neves <i/> Pernambués</p><CompareBars rows={observationsFor(data ?? emptyData, compareMetric)} compact/></div><div className="compare-difference"><span className="eyebrow">DIFERENÇA ABSOLUTA</span><strong>{fmt(Math.abs((observationsFor(data ?? emptyData, compareMetric)[1]?.value ?? 0) - (observationsFor(data ?? emptyData, compareMetric)[0]?.value ?? 0)))}</strong><span className="eyebrow">DIFERENÇA PERCENTUAL</span><strong>{Math.abs(Math.round((((observationsFor(data ?? emptyData, compareMetric)[1]?.value ?? 0) / (observationsFor(data ?? emptyData, compareMetric)[0]?.value || 1)) - 1) * 100))}%</strong><small>Em relação ao menor valor observado.</small></div></div>
+        <div className="compare-feature"><div className="compare-main"><div className="eyebrow">{metricLabels[compareMetric]}</div><h2>{fmt(observationsFor(data ?? emptyData, compareMetric)[0]?.value ?? 0)} <span>vs.</span> {fmt(observationsFor(data ?? emptyData, compareMetric)[1]?.value ?? 0)}</h2><p>Beiru / Tancredo Neves <i/> Pernambués</p><CompareBars rows={observationsFor(data ?? emptyData, compareMetric)} compact/></div><div className="compare-difference"><span className="eyebrow">DIFERENÇA ABSOLUTA</span><strong>{fmt(Math.abs((observationsFor(data ?? emptyData, compareMetric)[1]?.value ?? 0) - (observationsFor(data ?? emptyData, compareMetric)[0]?.value ?? 0)))}</strong><span className="eyebrow">DIFERENÇA PERCENTUAL</span><strong>{percentDifference(observationsFor(data ?? emptyData, compareMetric))}%</strong><small>Em relação ao menor valor observado.</small></div></div>
         <div className="comparison-table"><div className="table-title"><div><div className="eyebrow">QUADRO COMPARATIVO</div><h3>Indicadores observados</h3></div><span>IBGE · Censo 2022</span></div><table><thead><tr><th>Indicador</th><th>Unidade</th><th>Beiru / TN</th><th>Pernambués</th><th>Diferença</th></tr></thead><tbody>{Object.keys(metricLabels).map(code=>{const rows=observationsFor(data ?? emptyData,code);return <tr key={code}><td>{metricLabels[code]}</td><td>{rows[0]?.unit}</td><td>{fmt(rows[0]?.value??0)}</td><td>{fmt(rows[1]?.value??0)}</td><td>{fmt(Math.abs((rows[1]?.value??0)-(rows[0]?.value??0)))}</td></tr>})}</tbody></table></div>
       </>}
       {page === 'map' && <>
@@ -107,7 +119,8 @@ function App() {
       {page === 'energy' && <>
         <PageHeading eyebrow="CONTEXTO ENERGÉTICO" title="O estado como contexto." description="A série da EPE mostra consumo residencial e número de consumidores na Bahia. A escala estadual é mantida explícita."/>
         <div className="scope-callout"><div className="scope-icon"><Zap size={20}/></div><div><strong>Bahia · escala estadual</strong><span>Estes valores não são estimativas para Beiru / Tancredo Neves ou Pernambués.</span></div><span className="scope-tag">DADO OBSERVADO</span></div>
-        <section className="stat-grid energy-stats"><StatCard icon={Zap} label="Consumo residencial" value={latestEnergy ? fmt(latestEnergy.value) : '—'} suffix="GWh · 2025" tone="green" sub="EPE · Anuário Estatístico 2026"/><StatCard icon={UsersRound} label="Consumidores residenciais" value={fmt(data?.observations.find(o=>o.indicator_code==='electricity_residential_consumers' && o.year===2025)?.value??0)} suffix="unidades · 2025" tone="sand" sub="Unidades consumidoras na Bahia"/></section>
+        <div className="filter-row energy-filter"><label htmlFor="energy-year">Ano de referência</label><select id="energy-year" value={energyYear} onChange={e=>setEnergyYear(Number(e.target.value))}>{energySeries.map(({year})=><option value={year} key={year}>{year}</option>)}</select><span className="filter-year">Série disponível · 2011–2025</span></div>
+        <section className="stat-grid energy-stats"><StatCard icon={Zap} label="Consumo residencial" value={selectedEnergy ? fmt(selectedEnergy.value) : '—'} suffix={`GWh · ${energyYear}`} tone="green" sub="EPE · Anuário Estatístico 2026"/><StatCard icon={UsersRound} label="Consumidores residenciais" value={fmt(selectedConsumers?.value ?? 0)} suffix={`unidades · ${energyYear}`} tone="sand" sub="Unidades consumidoras na Bahia"/></section>
         <ChartCard title="Consumo residencial de eletricidade" eyebrow="EPE · BAHIA · 2011–2025" note="Consumo na Bahia, em GWh. A escala estadual não permite inferir valores para bairros."><div className="chart-wrap energy-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={energySeries} margin={{top:20,right:18,left:6,bottom:8}}><CartesianGrid vertical={false} stroke="#e8e8df"/><XAxis dataKey="year" tickLine={false} axisLine={false} tick={{fill:'#70746e',fontSize:11}}/><YAxis tickLine={false} axisLine={false} tick={{fill:'#70746e',fontSize:11}} width={46}/><Tooltip formatter={(v)=>[`${fmt(Number(v))} GWh`,'Consumo']} contentStyle={{borderRadius:12,border:'1px solid #e3e5df'}}/><Line type="monotone" dataKey="consumption" stroke="#406e61" strokeWidth={3} dot={{fill:'#406e61',strokeWidth:0,r:3}} activeDot={{r:5}}/></LineChart></ResponsiveContainer></div></ChartCard>
         <div className="energy-footnote"><span className="footnote-mark">i</span><p>O consumo agregado não indica qualidade ou continuidade do fornecimento, capacidade de pagamento ou conforto térmico das famílias. Essa análise exige pesquisas e dados em escala domiciliar.</p></div>
       </>}
@@ -115,7 +128,7 @@ function App() {
         <PageHeading eyebrow="TRANSPARÊNCIA" title="De onde vêm os números." description="Cada leitura registra fonte, período, escala, definição e o limite do que permite concluir."/>
         <div className="method-cards"><MethodCard n="01" icon={Database} title="Dado observado" copy="Valor publicado diretamente pela fonte para o território e período indicados."/><MethodCard n="02" icon={Activity} title="Indicador derivado" copy="Cálculo reproduzível sobre variáveis oficiais, com fórmula declarada."/><MethodCard n="03" icon={CircleHelp} title="Proxy ou estimativa" copy="Aproximação de um fenômeno não medido diretamente; exige justificativa e cautela."/></div>
         <div className="source-list"><div className="table-title"><div><div className="eyebrow">REGISTRO DE FONTES</div><h3>Dados em uso</h3></div><span>atualizado em 14 nov. 2026</span></div>
-          <SourceItem source="IBGE · Censo Demográfico 2022" detail="Agregados por bairro · v0001–v0009" scope="Bairro · 2022" href="https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/Agregados_por_Bairro_csv/"/>
+          <SourceItem source="IBGE · Censo Demográfico 2022" detail="População, renda, domicílios e entorno urbano" scope="Bairro · 2022" href="https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/Agregados_por_Bairro_csv/"/>
           <SourceItem source="IBGE · Malha de bairros" detail="Limites oficiais da Bahia · GeoPackage" scope="Bairro · 2022" href="https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/malha_com_atributos/bairros/gpkg/UF/BA/"/>
           <SourceItem source="EPE · Anuário Estatístico 2026" detail="Tabela 4.17 · consumo e consumidores residenciais" scope="Bahia · 2011–2025" href="https://www.epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/anuario-estatistico-de-energia-eletrica"/>
           <SourceItem source="IPEA · Base IVS Municipal" detail="IVS geral e três dimensões · edição 2015" scope="Salvador · 2000 e 2010" href="https://www.ipea.gov.br/redeipea/images/excel/dados-ivs-municipal.zip"/>

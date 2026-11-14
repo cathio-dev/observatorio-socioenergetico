@@ -42,7 +42,7 @@ Integrar dados públicos do IBGE, IPEA e EPE para descrever Beiru / Tancredo Nev
 ## Backlog a concluir com dados e contas do grupo
 
 - [ ] Confirmar se o professor aceita Censo 2022 para os bairros e IVS IPEA histórico de Salvador como contextualização.
-- [ ] Incorporar renda e infraestrutura somente depois de mapear variáveis e denominadores no dicionário correto do IBGE.
+- [ ] Revisar se outras variáveis censitárias, como escolaridade, acrescentam valor sem ampliar demais o escopo.
 - [ ] Criar projeto Supabase na conta do grupo, executar `supabase/schema.sql`, preencher variáveis e importar o snapshot.
 - [ ] Criar repositório remoto na conta do integrante responsável e enviar branches.
 - [ ] Configurar Vercel e variáveis públicas do Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).

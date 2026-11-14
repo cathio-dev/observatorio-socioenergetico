@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 export type Territory = { code: string; name: string; parent: string; geography_level: string; area_km2?: number }
 export type Observation = {
   territory_code: string; indicator_code: string; indicator_name: string; unit: string; year: number; value: number
-  source: string; source_url: string; classification: string; definition: string; geography: string; limitations: string
+  source_code: string; source: string; source_url: string; classification: string; definition: string; geography: string; limitations: string
 }
 export type AppData = { territories: Territory[]; observations: Observation[]; connected: boolean }
 

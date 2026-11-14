@@ -18,7 +18,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Para carregar dados no Supabase, execute `supabase/schema.sql` no SQL Editor, configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, depois siga `etl/README.md`.
+Para carregar dados no Supabase, execute `supabase/schema.sql` no SQL Editor, configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, depois siga `etl/README.md`. O relatório analítico, o relatório de qualidade e o roteiro de apresentação estão em `docs/`.
 
 ## Dados e método
 
