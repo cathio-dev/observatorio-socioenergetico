@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+data/raw/
+data/private/
+__pycache__/
+.venv/
+.DS_Store
