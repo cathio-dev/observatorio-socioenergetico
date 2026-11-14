@@ -14,16 +14,16 @@ Cada pessoa deve entrar no GitHub com a própria conta e fazer ao menos uma cont
 ## Trabalhar em uma feature
 
 ```bash
-git switch develop
-git pull origin develop
-git switch -c feature/member-4-integracao-deploy
+git fetch origin
+git switch feature/member-4-integracao-deploy
+git merge origin/develop
 # editar, revisar e salvar arquivos
 git add docs/ CONTRIBUTING.md
 git commit -m "docs: document integration and presentation plan"
 git push -u origin feature/member-4-integracao-deploy
 ```
 
-Abra um pull request para `develop`, descreva as alterações, informe as fontes e peça revisão de outro integrante. Após a integração e a demonstração, publique a versão aprovada de `develop` em `main`.
+As quatro branches de membro já existem no repositório local. Cada integrante pode atualizar a sua com `git merge origin/develop` antes de trabalhar. Se criar uma nova frente, use `git switch develop && git pull origin develop && git switch -c feature/<nome>-<tarefa>`. Abra um pull request para `develop`, descreva as alterações, informe as fontes e peça revisão de outro integrante. Após a integração e a demonstração, publique a versão aprovada de `develop` em `main`.
 
 ## Mensagens de commit
 

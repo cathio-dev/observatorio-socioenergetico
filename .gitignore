@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist/
 .env
 .env.*
 !.env.example
@@ -8,3 +9,6 @@ data/private/
 __pycache__/
 .venv/
 .DS_Store
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

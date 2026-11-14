@@ -12,6 +12,23 @@ Integrar dados públicos do IBGE, IPEA e EPE para descrever Beiru / Tancredo Nev
 4. Entrega prevista em Vercel com deploy a partir do GitHub.
 5. Relatório/análise: comparar valores de mesma escala e mesmo período; explicitar limitações e perguntas sem resposta.
 
+## Divisão entre quatro participantes
+
+| Participante | Branch | Responsabilidade principal | Entrega verificável |
+|---|---|---|---|
+| Membro 1 | `feature/member-1-dados` | IBGE, IPEA, EPE, catálogo, ETL e relatório de qualidade | Dataset reproduzível, variáveis rastreadas e validações documentadas |
+| Membro 2 | `feature/member-2-supabase` | Modelo PostgreSQL, Supabase, políticas de leitura e carga | Schema aplicado, tabelas preenchidas e consulta do dashboard funcionando |
+| Membro 3 | `feature/member-3-dashboard` | Componentes React, filtros, mapas, gráficos e responsividade | Cinco áreas do dashboard ligadas ao contrato de dados |
+| Membro 4 (você) | `feature/member-4-integracao-deploy` | Integração, revisão por pares, deploy Vercel e apresentação | Pull requests revisados, URL pública, roteiro e conclusões defensáveis |
+
+### Onde as tarefas se cruzam
+
+- Membro 1 combina com o Membro 2 os códigos e campos que serão usados no banco (`territory_code`, `indicator_code`, `year`, fonte, unidade e escala).
+- Membro 2 combina com o Membro 3 o nome e os tipos do view `dashboard_observations`, além do acesso de leitura anônima.
+- Membro 3 valida o dashboard junto ao Membro 1 para garantir que títulos, unidades e avisos reflitam o significado real dos dados.
+- Você combina com os três a revisão final, confere configuração de deploy e inclui no relatório somente conclusões respaldadas pelos dados.
+- Todo mundo revisa pelo menos um pull request de outra pessoa e registra sua própria contribuição por commits reais.
+
 ## Perguntas para a apresentação
 
 - Qual o perfil demográfico dos dois bairros no Censo 2022?
