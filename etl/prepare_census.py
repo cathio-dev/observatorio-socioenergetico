@@ -20,6 +20,11 @@ BASE = "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Seto
 SOURCES = {
     "basic": f"{BASE}/Agregados_por_Bairro_csv/Agregados_por_bairros_basico_BR_20260520.zip",
     "boundaries": f"{BASE}/malha_com_atributos/bairros/gpkg/UF/BA/BA_bairros_CD2022.gpkg",
+    "dwellings1": f"{BASE}/Agregados_por_Bairro_csv/Agregados_por_bairros_caracteristicas_domicilio1_BR_20261021.zip",
+    "dwellings2": f"{BASE}/Agregados_por_Bairro_csv/Agregados_por_bairros_caracteristicas_domicilio2_BR_20250417.zip",
+    "dwellings3": f"{BASE}/Agregados_por_Bairro_csv/Agregados_por_bairros_caracteristicas_domicilio3_BR_20250417.zip",
+    "income": f"{BASE}_Rendimento_do_Responsavel/Agregados_por_bairros_renda_responsavel_BR_20260508_csv.zip",
+    "urban": "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Caracteristicas_urbanisticas_do_entorno_dos_domicilios/Agregados_por_Bairro_csv/Agregados_por_bairros_entorno_domic%c3%adlios_BR.zip",
     "epe": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-160/topico-168/anuario-workbook.xlsx",
     "ipea": "https://www.ipea.gov.br/redeipea/images/excel/dados-ivs-municipal.zip",
 }
@@ -40,19 +45,37 @@ def parse_br_number(value: str) -> float:
     return float(value.replace(".", "").replace(",", "."))
 
 
+def read_bairro_table(path: Path) -> dict[str, dict[str, str]]:
+    with zipfile.ZipFile(path) as archive:
+        csv_name = next(n for n in archive.namelist() if n.lower().endswith(".csv"))
+        text = io.TextIOWrapper(archive.open(csv_name), encoding="latin-1", newline="")
+        return {row["CD_BAIRRO"]: row for row in csv.DictReader(text, delimiter=";") if row.get("CD_BAIRRO") in TARGETS}
+
+
 def main() -> None:
     RAW.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     basic_path = RAW / "ibge_bairros_basico_20260520.zip"
     boundary_path = RAW / "BA_bairros_CD2022.gpkg"
+    table_paths = {
+        "dwellings1": RAW / "ibge_bairros_caracteristicas_domicilio1_20261021.zip",
+        "dwellings2": RAW / "ibge_bairros_caracteristicas_domicilio2_20250417.zip",
+        "dwellings3": RAW / "ibge_bairros_caracteristicas_domicilio3_20250417.zip",
+        "income": RAW / "ibge_bairros_rendimento_responsavel_20260508.zip",
+        "urban": RAW / "ibge_bairros_entorno_domicilios_2025.zip",
+    }
     download(SOURCES["basic"], basic_path)
     download(SOURCES["boundaries"], boundary_path)
+    for name, path in table_paths.items():
+        download(SOURCES[name], path)
 
-    with zipfile.ZipFile(basic_path) as archive:
-        csv_name = next(n for n in archive.namelist() if n.lower().endswith(".csv"))
-        text = io.TextIOWrapper(archive.open(csv_name), encoding="latin-1", newline="")
-        rows = csv.DictReader(text, delimiter=";")
-        selected = {row["CD_BAIRRO"]: row for row in rows if row.get("CD_BAIRRO") in TARGETS}
+    tables = {"basic": read_bairro_table(basic_path)}
+    tables.update({name: read_bairro_table(path) for name, path in table_paths.items()})
+    for name, rows in tables.items():
+        missing_codes = set(TARGETS) - set(rows)
+        if missing_codes:
+            raise ValueError(f"{name} table is missing target codes: {sorted(missing_codes)}")
+    selected = tables["basic"]
 
     missing = set(TARGETS) - set(selected)
     if missing:
@@ -77,6 +100,7 @@ def main() -> None:
             observations.append({
                 "territory_code": code, "indicator_code": key, "indicator_name": label,
                 "unit": unit, "year": 2022, "value": parse_br_number(row[column]),
+                "source_code": "ibge_censo_bairro_basico_2022",
                 "source": "IBGE - Censo Demográfico 2022, agregados por bairro",
                 "source_url": SOURCES["basic"], "classification": "observado",
                 "definition": definition, "geography": "bairro", "limitations": "Retrato censitário de 2022; não mede diretamente pobreza energética familiar.",
@@ -86,11 +110,70 @@ def main() -> None:
         observations.append({
             "territory_code": t["code"], "indicator_code": "population_density", "indicator_name": "Densidade populacional",
             "unit": "pessoas/km²", "year": 2022, "value": round(pop / t["area_km2"], 1),
+            "source_code": "ibge_censo_bairro_basico_2022",
             "source": "IBGE - Censo Demográfico 2022, agregados por bairro",
             "source_url": SOURCES["basic"], "classification": "derivado",
             "definition": "População residente (v0001) / área territorial (km²).",
             "geography": "bairro", "limitations": "Densidade média do bairro; não descreve distribuição intrabairro.",
         })
+
+    housing_metrics = [
+        ("water_network_share", "Domicílios com abastecimento pela rede geral", "%", "dwellings2", "V00111", "domicilios_particulares_permanentes_ocupados", "V00001", "Domicílios particulares permanentes ocupados que utilizam rede geral de distribuição de água; proporção calculada sobre DPO."),
+        ("sewer_network_share", "Domicílios com esgoto na rede geral ou pluvial", "%", "dwellings2", "V00309", "domicilios_particulares_permanentes_ocupados", "V00001", "Domicílios particulares permanentes ocupados cujo esgoto vai para rede geral ou pluvial; proporção calculada sobre DPO."),
+        ("waste_collection_share", "Domicílios com coleta por serviço de limpeza", "%", "dwellings2", "V00397+V00398", "domicilios_particulares_permanentes_ocupados", "V00001", "Domicílios particulares permanentes ocupados com lixo coletado por serviço de limpeza, no domicílio ou em caçamba; proporção calculada sobre DPO."),
+        ("without_bathroom_share", "Domicílios sem banheiro nem sanitário", "%", "dwellings2", "V00238", "domicilios_particulares_permanentes_ocupados", "V00001", "Domicílios particulares permanentes ocupados sem banheiro nem sanitário; proporção calculada sobre DPO."),
+    ]
+    for code, label, unit, table_name, numerator_col, _, denominator_col, definition in housing_metrics:
+        for territory_code in TARGETS:
+            numerator = sum(parse_br_number(tables[table_name][territory_code][column]) for column in numerator_col.split('+'))
+            denominator = parse_br_number(tables["dwellings1"][territory_code][denominator_col])
+            observations.append({
+                "territory_code": territory_code, "indicator_code": code, "indicator_name": label,
+                "unit": unit, "year": 2022, "value": round(numerator / denominator * 100, 2) if denominator else 0,
+                "source_code": "ibge_censo_caracteristicas_domicilios_2022",
+                "source": "IBGE - Censo Demográfico 2022, características dos domicílios",
+                "source_url": SOURCES[table_name], "classification": "derivado",
+                "definition": f"{definition} Fórmula: {numerator_col} / {denominator_col} × 100.",
+                "geography": "bairro", "limitations": "Percentual agregado de DPO; não mede qualidade, continuidade ou experiência individual do serviço.",
+            })
+
+    income_metrics = [
+        ("income_average", "Rendimento nominal médio mensal do responsável", "R$/mês (nominal 2022)", "V06004", "Valor médio mensal das pessoas responsáveis com rendimento em domicílios particulares permanentes ocupados."),
+        ("income_median", "Rendimento nominal mediano mensal do responsável", "R$/mês (nominal 2022)", "V06006", "Mediana do rendimento nominal mensal das pessoas responsáveis com rendimento em domicílios particulares permanentes ocupados."),
+    ]
+    for code, label, unit, column, definition in income_metrics:
+        for territory_code in TARGETS:
+            row = tables["income"][territory_code]
+            observations.append({
+                "territory_code": territory_code, "indicator_code": code, "indicator_name": label,
+                "unit": unit, "year": 2022, "value": parse_br_number(row[column]),
+                "source_code": "ibge_censo_rendimento_responsavel_2022",
+                "source": "IBGE - Censo Demográfico 2022, rendimento do responsável",
+                "source_url": SOURCES["income"], "classification": "observado",
+                "definition": definition, "geography": "bairro",
+                "limitations": "Rendimento do responsável que possui rendimento; não equivale à renda per capita nem informa gasto com energia.",
+            })
+
+    urban_metrics = [
+        ("urban_paved_share", "Domicílios em face com via pavimentada", "V05006", "Proporção de DPOs em face com via pavimentada"),
+        ("urban_lighting_share", "Domicílios em face com iluminação pública", "V05012", "Proporção de DPOs em face com iluminação pública"),
+        ("urban_sidewalk_share", "Domicílios em face com calçada", "V05021", "Proporção de DPOs em face com calçada"),
+        ("urban_no_trees_share", "Domicílios em face sem árvores", "V05030", "Proporção de DPOs em face sem árvores"),
+    ]
+    for code, label, yes_col, description in urban_metrics:
+        for territory_code in TARGETS:
+            row = tables["urban"][territory_code]
+            denominator = parse_br_number(row["V05000"])
+            numerator = parse_br_number(row[yes_col])
+            observations.append({
+                "territory_code": territory_code, "indicator_code": code, "indicator_name": label,
+                "unit": "%", "year": 2022, "value": round(numerator / denominator * 100, 2) if denominator else 0,
+                "source_code": "ibge_censo_entorno_domicilios_2022",
+                "source": "IBGE - Censo Demográfico 2022, características urbanísticas do entorno",
+                "source_url": SOURCES["urban"], "classification": "derivado",
+                "definition": f"{description}. Fórmula: {yes_col} / V05000 × 100.",
+                "geography": "bairro", "limitations": "Percentual de domicílios ponderado pela face de entorno; não mede qualidade ou continuidade do serviço.",
+            })
 
     # The EPE table is state-level. Preserve that geography in its own territory.
     epe_path = RAW / "epe_anuario_workbook.xlsx"
@@ -108,6 +191,7 @@ def main() -> None:
             observations.append({
                 "territory_code": "BA", "indicator_code": code, "indicator_name": label,
                 "unit": unit, "year": year, "value": float(value),
+                "source_code": "epe_anuario_2026",
                 "source": "EPE - Anuário Estatístico de Energia Elétrica 2026, tabela 4.17",
                 "source_url": SOURCES["epe"], "classification": "observado",
                 "definition": f"Valor publicado pela EPE para a Bahia no ano de {year}.",
@@ -137,6 +221,7 @@ def main() -> None:
             observations.append({
                 "territory_code": "2927408", "indicator_code": code, "indicator_name": label,
                 "unit": "índice (0–1)", "year": year, "value": float(row[column]),
+                "source_code": "ipea_ivs_municipal",
                 "source": "IPEA - Atlas da Vulnerabilidade Social, Base IVS Municipal",
                 "source_url": SOURCES["ipea"], "classification": "observado",
                 "definition": definition, "geography": "município",

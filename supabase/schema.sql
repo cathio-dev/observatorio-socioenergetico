@@ -63,6 +63,7 @@ with (security_invoker = true)
 as
 select
   o.territory_code,
+  o.source_code,
   t.name as territory_name,
   t.geography_level as geography,
   o.indicator_code,
