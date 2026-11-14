@@ -12,7 +12,7 @@ const indicatorRows = new Map()
 const observationRows = []
 
 for (const observation of dataset.observations) {
-  const sourceCode = observation.source.startsWith('IBGE') ? 'ibge_censo_2022' : 'epe_anuario_2026'
+  const sourceCode = observation.source.startsWith('IBGE') ? 'ibge_censo_2022' : observation.source.startsWith('EPE') ? 'epe_anuario_2026' : 'ipea_ivs_municipal'
   sourceCodes.set(sourceCode, { code: sourceCode, institution: observation.source.split(' - ')[0], title: observation.source.split(' - ').slice(1).join(' - '), url: observation.source_url })
   const dimension = observation.indicator_code.startsWith('electricity') ? 'energética' : observation.indicator_code.includes('dwelling') || observation.indicator_code.includes('residents_per') ? 'habitacional' : 'demográfica'
   indicatorRows.set(observation.indicator_code, {

@@ -21,6 +21,7 @@ SOURCES = {
     "basic": f"{BASE}/Agregados_por_Bairro_csv/Agregados_por_bairros_basico_BR_20260520.zip",
     "boundaries": f"{BASE}/malha_com_atributos/bairros/gpkg/UF/BA/BA_bairros_CD2022.gpkg",
     "epe": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-160/topico-168/anuario-workbook.xlsx",
+    "ipea": "https://www.ipea.gov.br/redeipea/images/excel/dados-ivs-municipal.zip",
 }
 TARGETS = {
     "2927408018": "Beiru / Tancredo Neves",
@@ -111,6 +112,35 @@ def main() -> None:
                 "source_url": SOURCES["epe"], "classification": "observado",
                 "definition": f"Valor publicado pela EPE para a Bahia no ano de {year}.",
                 "geography": "estado", "limitations": "Dado estadual; não representa nem pode ser atribuído aos bairros.",
+            })
+
+    # IPEA IVS is available for Salvador at municipality level for 2000 and 2010.
+    ipea_path = RAW / "ipea_ivs_municipal.zip"
+    download(SOURCES["ipea"], ipea_path)
+    with zipfile.ZipFile(ipea_path) as archive:
+        xlsx_name = next(n for n in archive.namelist() if n.lower().endswith(".xlsx"))
+        ipea_bytes = io.BytesIO(archive.read(xlsx_name))
+    ipea_sheet = load_workbook(ipea_bytes, read_only=True, data_only=True)["Municipios"]
+    ipea_rows = [row for row in ipea_sheet.iter_rows(min_row=2, values_only=True) if row[1] == 292740]
+    ipea_by_year = {int(row[5]): row for row in ipea_rows}
+    if set(ipea_by_year) != {2000, 2010}:
+        raise ValueError("IPEA municipal IVS table is missing Salvador for 2000 and/or 2010")
+    territories.append({"code": "2927408", "name": "Salvador", "parent": "Bahia", "geography_level": "município"})
+    ipea_indicators = [
+        ("ivs", "Índice de Vulnerabilidade Social (IVS)", 25, "Índice sintético de 0 a 1"),
+        ("ivs_income_work", "IVS Renda e Trabalho", 22, "Dimensão do IVS, índice de 0 a 1"),
+        ("ivs_human_capital", "IVS Capital Humano", 23, "Dimensão do IVS, índice de 0 a 1"),
+        ("ivs_urban_infrastructure", "IVS Infraestrutura Urbana", 24, "Dimensão do IVS, índice de 0 a 1"),
+    ]
+    for code, label, column, definition in ipea_indicators:
+        for year, row in ipea_by_year.items():
+            observations.append({
+                "territory_code": "2927408", "indicator_code": code, "indicator_name": label,
+                "unit": "índice (0–1)", "year": year, "value": float(row[column]),
+                "source": "IPEA - Atlas da Vulnerabilidade Social, Base IVS Municipal",
+                "source_url": SOURCES["ipea"], "classification": "observado",
+                "definition": definition, "geography": "município",
+                "limitations": "Valor municipal publicado pelo IPEA; não descreve os bairros individualmente. Referência histórica de 2000/2010.",
             })
 
     (OUT / "seed.json").write_text(json.dumps({"territories": territories, "observations": observations}, ensure_ascii=False, indent=2) + "\n")

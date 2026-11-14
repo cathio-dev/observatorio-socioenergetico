@@ -15,8 +15,14 @@ O IBGE identifica os bairros como **Beiru / Tancredo Neves**, código `292740801
 | `dwellings_vacant` | Domicílios vagos | Observado | `v0009`, domicílios | Bairro, Censo 2022 |
 | `residents_per_occupied_dwelling` | Moradores por domicílio ocupado | Observado | `v0005`, pessoas por domicílio | Bairro, Censo 2022 |
 | `population_density` | Densidade populacional | Derivado | `v0001 / AREA_KM2`, pessoas/km² | Bairro, Censo 2022 |
+| `ivs` | IVS | Observado | Índice de 0 a 1 publicado pelo IPEA | Município de Salvador, 2000 e 2010 |
+| `ivs_income_work` | IVS Renda e Trabalho | Observado | Dimensão do IVS, índice de 0 a 1 | Município de Salvador, 2000 e 2010 |
+| `ivs_human_capital` | IVS Capital Humano | Observado | Dimensão do IVS, índice de 0 a 1 | Município de Salvador, 2000 e 2010 |
+| `ivs_urban_infrastructure` | IVS Infraestrutura Urbana | Observado | Dimensão do IVS, índice de 0 a 1 | Município de Salvador, 2000 e 2010 |
+| `electricity_residential_consumption` | Consumo residencial de eletricidade | Observado | GWh | Estado da Bahia, 2011–2025 |
+| `electricity_residential_consumers` | Consumidores residenciais de eletricidade | Observado | unidades consumidoras | Estado da Bahia, 2011–2025 |
 
-As definições `v0001` a `v0009` vêm do dicionário oficial **Dicionário Básico** do arquivo `dicionario_de_dados_agregados_por_setores_censitarios_20261113.xlsx`. A malha e a tabela são baixadas pelo ETL; arquivos nacionais brutos ficam fora do repositório.
+As definições `v0001` a `v0009` vêm do dicionário oficial **Dicionário Básico** do arquivo `dicionario_de_dados_agregados_por_setores_censitarios_20261113.xlsx`. As séries da EPE vêm da tabela 4.17 do workbook do Anuário 2026. Os quatro índices do IPEA foram filtrados pelo código municipal `292740` na aba `Municipios` da Base IVS Municipal, edição de 2015. A malha e as tabelas são baixadas pelo ETL; arquivos brutos ficam fora do repositório.
 
 ## Catálogo de indicadores para investigação
 
@@ -33,8 +39,9 @@ As definições `v0001` a `v0009` vêm do dicionário oficial **Dicionário Bás
 | Habitacional | Abastecimento de água | IBGE, bairro/setor conforme tabela | Candidato; publicar percentual somente com numerador e denominador definidos |
 | Habitacional | Esgotamento sanitário | IBGE, bairro/setor conforme tabela | Candidato; validar categorias da tabela |
 | Urbana | Arborização, pavimentação e iluminação pública | IBGE, entorno, setor ou bairro quando agregado | Candidato; iluminação pública não mede continuidade elétrica residencial |
-| Social | Índice de Vulnerabilidade Social (IVS) | IPEA, escala indicada na edição | Candidato; não presumir disponibilidade por bairro |
-| Energética | Consumo residencial e número de consumidores | EPE, estado/região | Candidato; usar como contexto da Bahia, nunca como observação de bairro |
+| Social | IVS geral e dimensões | IPEA, município de Salvador | Carregado para 2000 e 2010; histórico municipal, sem desagregação para os bairros |
+| Energética | Consumo residencial | EPE, Bahia | Carregado para 2011–2025; contexto estadual |
+| Energética | Consumidores residenciais | EPE, Bahia | Carregado para 2011–2025; contexto estadual |
 
 ## Fontes oficiais
 
@@ -42,8 +49,9 @@ As definições `v0001` a `v0009` vêm do dicionário oficial **Dicionário Bás
 - IBGE, [malha oficial de bairros do Censo 2022](https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/malha_com_atributos/bairros/gpkg/UF/BA/).
 - IBGE, [dicionário dos agregados censitários](https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/).
 - IPEA, [Atlas da Vulnerabilidade Social](http://ivs.ipea.gov.br/).
+- IPEA, [Base IVS Municipal (arquivo oficial ZIP)](https://www.ipea.gov.br/redeipea/images/excel/dados-ivs-municipal.zip).
 - EPE, [Anuário Estatístico de Energia Elétrica e dados abertos](https://www.epe.gov.br/pt/publicacoes-dados-abertos/publicacoes/anuario-estatistico-de-energia-eletrica).
 
 ## Limites
 
-Baixa renda, densidade, condições de moradia e infraestrutura são dimensões relacionadas, mas não comprovam pobreza energética de uma família. O Censo descreve um período específico. Comparações percentuais exigem denominadores compatíveis. Dados estaduais da EPE são exibidos em painel separado e não são distribuídos artificialmente entre bairros. Um eventual IEVS será exploratório e não oficial, com normalização, pesos e sensibilidade explicitados.
+O IVS municipal de Salvador é um retrato histórico baseado nos Censos 2000 e 2010; ele não representa especificamente Beiru / Tancredo Neves nem Pernambués e não deve ser comparado como se tivesse a mesma data do Censo 2022. Baixa renda, densidade, condições de moradia e infraestrutura são dimensões relacionadas, mas não comprovam pobreza energética de uma família. Comparações percentuais exigem denominadores compatíveis. Dados estaduais da EPE são exibidos em painel separado e não são distribuídos artificialmente entre bairros. Um eventual IEVS será exploratório e não oficial, com normalização, pesos e sensibilidade explicitados.
