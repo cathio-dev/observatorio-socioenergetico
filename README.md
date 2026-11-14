@@ -5,7 +5,7 @@ Dashboard público para caracterizar e comparar Beiru / Tancredo Neves e Pernamb
 ## Situação atual
 
 - Repositório organizado em `main` e `develop`, com frentes `feature/` documentadas em [CONTRIBUTING.md](CONTRIBUTING.md).
-- Base inicial reproduzível do Censo 2022 por bairro (IBGE): população e domicílios ocupados para os dois bairros.
+- Base inicial reproduzível do Censo 2022 por bairro (IBGE), IVS municipal do IPEA (2000 e 2010) e série energética estadual da EPE (2011 a 2025).
 - Catálogo de indicadores, pipeline de importação, esquema PostgreSQL/Supabase e dashboard React preparados.
 - O app identifica os registros carregados pela fonte e pelo ano; não cria valores de bairro a partir de dados estaduais.
 - Conexões com Supabase, GitHub e Vercel exigem as contas/credenciais correspondentes.
