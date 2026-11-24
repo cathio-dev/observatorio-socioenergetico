@@ -58,6 +58,7 @@ create policy "Public read indicators" on public.indicators for select to anon, 
 drop policy if exists "Public read observations" on public.observations;
 create policy "Public read observations" on public.observations for select to anon, authenticated using (true);
 
+
 create or replace view public.dashboard_observations
 with (security_invoker = true)
 as
@@ -75,10 +76,12 @@ select
   s.url as source_url,
   o.classification,
   o.definition,
-  o.limitations
+  o.limitations,
+  i.dimension
 from public.observations o
-join public.territories t using (territory_code)
-join public.indicators i using (indicator_code)
-join public.sources s using (source_code);
+join public.territories t on t.code = o.territory_code
+join public.indicators i on i.code = o.indicator_code
+join public.sources s on s.code = o.source_code;
+
 
 grant select on public.territories, public.sources, public.indicators, public.observations, public.dashboard_observations to anon, authenticated;
